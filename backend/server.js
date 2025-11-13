@@ -5,6 +5,7 @@ const path = require("path")
 const connectDB = require("./config/dbconfig")
 const port = process.env.PORT||3000
 const frontendPath = path.join(__dirname, './../tce_frontend/dist')
+const user = require("./models/users")
 
 //middleware
 app.use(express.json()) 
@@ -22,13 +23,34 @@ connectDB()
   console.log('working')
 })*/
 
+//creating a user
+const createUser = async ()=>{
+try{
+  const newUser =new user(
+  {
+    first_name: "Ezekiel",
+    last_name: "Minja",
+    username: "minjaezekiel",
+    email: "ezekielminja@gmail.com",
+    password: "123456789",
+    isAdmin: true
+  }
+)
+await newUser.save()
+console.log(`New user created: \n ${newUser}`)
+}catch(err){
+  console.error(`Error creating user: \n ${err.message}`)
+}
+} 
+//createUser();
+
 /*
  *splat matches any path without the root path. If you need to match the root 
  * path as well /, you can use /{*splat}, wrapping the wildcard in braces.
  * for more info, read expressjs docs 
  * */
 app.get('/{*splat}', (req, res) => {
-  console.log("Catch-all route hit. Sending file:", path.join(frontendPath, "index.html"));
+  //console.log("Catch-all route hit. Sending file:", path.join(frontendPath, "index.html"));
   res.sendFile(path.join(frontendPath, "index.html"));
 }); 
 
