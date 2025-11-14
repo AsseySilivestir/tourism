@@ -44,6 +44,10 @@ console.log(`New user created: \n ${newUser}`)
 } 
 //createUser();
 
+//routes
+//app.use("/admin",loginRouter)
+//app.use("/contactUs", contactRouter)
+
 /*
  *splat matches any path without the root path. If you need to match the root 
  * path as well /, you can use /{*splat}, wrapping the wildcard in braces.
