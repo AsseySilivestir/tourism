@@ -1,14 +1,26 @@
 require("dotenv").config()
 const express = require('express')
+const helmet = require("helmet")
 const app = express()
+const cors = require("cors")
 const path = require("path")
 const connectDB = require("./config/dbconfig")
 const port = process.env.PORT||3000
 const frontendPath = path.join(__dirname, './../tce_frontend/dist')
 const user = require("./models/users")
+const contact = require("./models/contacts")
+const contactRouter = require("./routes/contacts.routes")
+//const router = express.Router()
+
+//connecting to database...
+//connectDB()
 
 //middleware
+//allow use of cors on debug mode 
+//app.use(cors()) 
+app.use(helmet)
 app.use(express.json()) 
+//app.use(router)
 //serving static files from the dist dir...(frontend build)
 app.use(express.static(frontendPath,{index:false}))
 /*
@@ -16,8 +28,7 @@ app.use(express.static(frontendPath,{index:false}))
 app.use('/assets', express.static(path.join(frontendPath, 'assets')));
 */
 
-//connecting to database...
-connectDB()
+
 /*app.get("/",(req,res)=>{
   res.send("<h1>Hello world</h1>")
   console.log('working')
@@ -28,9 +39,9 @@ const createUser = async ()=>{
 try{
   const newUser =new user(
   {
-    first_name: "Ezekiel",
+    first_name: "Zekiel",
     last_name: "Minja",
-    username: "minjaezekiel",
+    username: "minjazekiel",
     email: "ezekielminja@gmail.com",
     password: "123456789",
     isAdmin: true
@@ -42,11 +53,57 @@ console.log(`New user created: \n ${newUser}`)
   console.error(`Error creating user: \n ${err.message}`)
 }
 } 
-//createUser();
+createUser();
+
+const createContact = async ()=>{
+  try{
+const newContact = await contact.create(
+  {
+    fullname: "Ezekiel Minja",
+    email: 'ezekielminja@gmail.com', 
+    phone: '0658520839', 
+    tour: 'kilimanjaro', 
+    message: 'Hlw'
+  }
+)
+console.log(`Contact saved successfully: \n ${newContact}`)
+  }catch(e){
+    console.error(`Failed to create contact: \n ${e.message}`)
+  }
+}
+//createContact()
+
+
 
 //routes
 //app.use("/admin",loginRouter)
-//app.use("/contactUs", contactRouter)
+app.use("/contactUs", contactRouter,(req,res,next)=>{console.log("Main route working"),next()})
+/*router.route("/contactUs").post(async(req,res)=>{
+try{
+const {name, email, phone, tour, message} = req.body
+
+const newContact = await contact.create(
+  {
+    fullname: name,
+    email: email,
+    phone: phone,
+    tour: tour,
+    message: message
+  }
+)
+
+console.log(`New contact saved successfully,\n${newContact}`)
+
+res.status(201).json({
+  message: `Contact saved successfully:`,
+  data: newContact})
+}catch(e){
+  console.error(`Failed to save contact \n ${e}`)
+  
+  res.status(500).json({ message: "Failed to save contact", error: e.message })
+}
+})*/
+
 
 /*
  *splat matches any path without the root path. If you need to match the root 
@@ -58,8 +115,29 @@ app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 }); 
 
+const startServer = async () => {
+  try {
+    // waiting for the database to connect
+    await connectDB();
+    console.log("Database connected successfully!\nNow running operations...");
+
+    // 2.  it's safe to run your function
+    //await createContact(); 
+    await createUser
+    
+    app.listen(3000, () => {
+      console.log('App listening on port 127.0.0.1:3000/');
+    });
+
+  } catch (error) {
+    console.error("Failed to start the application:", error);
+    process.exit(1); // Exit if we can't connect to the DB
+  }
+};
+
 //to run the server, type in command prompt npm run devStart
 //note that you must be in the same directory as the backend/server.js
-app.listen(port, () => {
+/*app.listen(port, () => {
   console.log(`Example app listening on port 127.0.0.1:${port}/`)
-})
+})*/
+startServer()

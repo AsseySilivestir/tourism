@@ -1,10 +1,10 @@
 const express = require("express")
 const router = express.Router()
-const contactController = require("./../controllers/contacts.controls")
+const {createContact} = require("./../controllers/contacts.controls")
 
 //routes
 
-//router.post("/", contactController)
+router.post("/", (req,res,next)=>{console.log("Main route working"),next()},createContact)
 
 
 

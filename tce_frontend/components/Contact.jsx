@@ -13,6 +13,8 @@ import {
  */
 const Contact = () => {
   // State for form submission status
+  const [isLoading, setIsLoading] = useState(false); // New: Loading state
+  const [error, setError] = useState(null); // New: Error state
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -30,17 +32,34 @@ const Contact = () => {
       [name]: value
     });
   };
-
-  // Handle form submission
-  const handleSubmit = (e) => {
+// Handle form submission
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real application, you would send this data to a server
-    console.log('Form submitted:', formData);
-    setFormSubmitted(true);
-    
-    // Reset form after submission
-    setTimeout(() => {
-      setFormSubmitted(false);
+    setIsLoading(true); // Start loading
+    setError(null); // Clear previous errors
+    setFormSubmitted(false); // Clear previous success message
+
+    try {
+      const response = await fetch('http://127.0.0.1:3000/contactUs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // If server responds with an error (e.g., 400, 500)
+        throw new Error(data.message || 'Something went wrong.');
+      }
+
+      // On success
+      console.log('Server Response:', data);
+      setFormSubmitted(true);
+      
+      // Reset form after successful submission
       setFormData({
         name: '',
         email: '',
@@ -48,7 +67,14 @@ const Contact = () => {
         tour: '',
         message: ''
       });
-    }, 5000);
+
+    } catch (err) {
+      // Catch network errors or errors thrown from the block above
+      console.error('Submission Error:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false); // Stop loading regardless of outcome
+    }
   };
 
   return (
@@ -59,9 +85,16 @@ const Contact = () => {
           <p className="lead">Get in touch to plan your Tanzanian adventure</p>
         </div>
         
-        {formSubmitted && (
+      {/* --- FEEDBACK MESSAGES --- */}
+      {formSubmitted && (
           <Alert variant="success" className="mb-4">
             Thank you for your message! We'll get back to you soon.
+          </Alert>
+        )}
+        
+        {error && (
+          <Alert variant="danger" className="mb-4">
+            {error}
           </Alert>
         )}
         

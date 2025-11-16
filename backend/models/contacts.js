@@ -3,11 +3,11 @@ const Schema = mongoose.Schema;
 
 const contactSchema = new Schema(
     {
-        fullName:{type:String,required:true},
+        fullname:{type:String,required:true},
         email: {type:String,required:true},
         phone: {type:String,required:true},
-        interestedTour: {type:String,required:true},
-        message: {type:String,required:true}
+        tour: {type:String,required:true},
+        message: {type:String}
     },
     {
         timestamps: true

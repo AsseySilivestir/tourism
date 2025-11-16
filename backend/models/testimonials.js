@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 //testimonial schema
 const tSchema = new Schema(
     {
-        fullName: {type:String,required:true},
+        fullname: {type:String,required:true},
         content: {type:String,required:true},
         country: {type:String,required:true}
     }

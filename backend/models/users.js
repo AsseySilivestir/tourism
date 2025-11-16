@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-
+const bcrypt = require("bcrypt")
 
 const userSchema = new Schema(
     {
@@ -44,6 +44,25 @@ const userSchema = new Schema(
     }
 );
 
+//  pre-save hook
+userSchema.pre('save', async function(next) {
+    // Only run this function if password was actually modified
+    if (!this.isModified('password')) {
+        return next(); // Go to the next middleware
+    }
+
+    // Hashing the password with a cost of 10
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    
+    next(); // Go to the next middleware
+});
+
+
+// method to compare passwords for login
+userSchema.methods.comparePassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
 
 const User = mongoose.model('User', userSchema);
 

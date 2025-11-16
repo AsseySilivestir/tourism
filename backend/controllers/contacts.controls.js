@@ -1,27 +1,32 @@
 const contact = require("./../models/contacts")
 
-const saveContact = async (req,res)=>{
+const createContact = async (req,res)=>{
 try{
 //receive data from client and destructure..
 const {name, email, phone, tour, message} = req.body
 
+// Log the received data to debug
+console.log("Received form data:", { name, email, phone, tour, message });
+
+
 //save user contact data to db
-const saveContact = await contact.create(
+const newContact = await contact.create(
     {
-        name:name,
+        fullname:name,
         email:email,
         phone:phone,
         tour:tour,
         message:message
     }
 )
+
 //dispay upon successfully saving data
-console.log(`Contact saved successfully, ${saveContact["name"]}`)
+console.log(`Contact saved successfully, ${newContact.fullname}`)
 
 //Send a success response to the client
 res.status(201).json({
             message: 'Contact saved successfully!',
-            data: newContact.name // Optionally send back the created data
+            data: newContact.fullname // Optionally send back the created data
         })
 
 }catch(error){
@@ -33,3 +38,6 @@ res.status(201).json({
         })
 }
 }
+
+
+module.exports = {createContact}; 
