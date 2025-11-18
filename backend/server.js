@@ -1,143 +1,104 @@
-require("dotenv").config()
-const express = require('express')
-const helmet = require("helmet")
-const app = express()
-const cors = require("cors")
-const path = require("path")
-const connectDB = require("./config/dbconfig")
-const port = process.env.PORT||3000
-const frontendPath = path.join(__dirname, './../tce_frontend/dist')
-const user = require("./models/users")
-const contact = require("./models/contacts")
-const contactRouter = require("./routes/contacts.routes")
-//const router = express.Router()
+/**
+ * @constant io is being used in /public/js/clientSocket.js
+ * Socket.IO on the client connected back via @constant port = XXXX;
+ */
+const express = require('express');
+const app = express();
+const port = 3003;
+const middleware = require('./middleware')
+const path = require('path')
+const bodyParser = require("body-parser")
+const mongoose = require("./database");
+const session = require('express-session');
+//const io = require("socket.io"); //CAN BE DELETED
 
-//connecting to database...
-//connectDB()
+const server = app.listen(port, () => console.log("Server listening on port " + port));
+const io = require("socket.io")(server, { pingTimeout: 60000 });
 
-//middleware
-//allow use of cors on debug mode 
-//app.use(cors()) 
-app.use(helmet)
-app.use(express.json()) 
-//app.use(router)
-//serving static files from the dist dir...(frontend build)
-app.use(express.static(frontendPath,{index:false}))
-/*
-* Even this opt works...does same thing as app.use(express.static(frontendPath,{index:false}))
-app.use('/assets', express.static(path.join(frontendPath, 'assets')));
-*/
+app.set("view engine", "pug");
+app.set("views", "views");
 
+app.use(express.urlencoded({ extended: false })); //app.use(bodyParser.urlencoded({ extended: false })); //bodyParser deprecated in Express v4.16+ // amended for ./routes/{loginRoutes, logout}.js
+app.use(express.static(path.join(__dirname, "public")));
 
-/*app.get("/",(req,res)=>{
-  res.send("<h1>Hello world</h1>")
-  console.log('working')
-})*/
+app.use(session({
+	secret: "beef cake",
+	resave: true,
+	saveUninitialized: false
+}))
 
-//creating a user
-const createUser = async ()=>{
-try{
-  const newUser =new user(
-  {
-    first_name: "Zekiel",
-    last_name: "Minja",
-    username: "minjazekiel",
-    email: "ezekielminja@gmail.com",
-    password: "123456789",
-    isAdmin: true
-  }
-)
-await newUser.save()
-console.log(`New user created: \n ${newUser}`)
-}catch(err){
-  console.error(`Error creating user: \n ${err.message}`)
-}
-} 
-createUser();
+// Routes
+const loginRoute = require('./routes/loginRoutes');
+const registerRoute = require('./routes/registerRoutes');
+const logoutRoute = require('./routes/logout');
+const postRoute = require('./routes/postRoutes');
+const profileRoute = require('./routes/profileRoutes');
+const uploadRoute = require('./routes/uploadRoutes');
+const searchRoute = require('./routes/searchRoutes');
+const messagesRoute = require('./routes/messagesRoutes');
+const notificationsRoute = require('./routes/notificationsRoutes');
 
-const createContact = async ()=>{
-  try{
-const newContact = await contact.create(
-  {
-    fullname: "Ezekiel Minja",
-    email: 'ezekielminja@gmail.com', 
-    phone: '0658520839', 
-    tour: 'kilimanjaro', 
-    message: 'Hlw'
-  }
-)
-console.log(`Contact saved successfully: \n ${newContact}`)
-  }catch(e){
-    console.error(`Failed to create contact: \n ${e.message}`)
-  }
-}
-//createContact()
+// API Routes
+const postsApiRoute = require('./routes/api/postsAPI');
+const usersApiRoute = require('./routes/api/usersAPI');
+const chatsApiRoute = require('./routes/api/chatsAPI');
+const messagesApiRoute = require('./routes/api/messagesAPI');
+const notificationsApiRoute = require('./routes/api/notificationsAPI');
 
 
+//Use Routes
+app.use("/login", loginRoute);
+app.use("/register", registerRoute);
+app.use("/logout", logoutRoute);
+app.use("/posts", middleware.requireLogin, postRoute);
+app.use("/profile", middleware.requireLogin, profileRoute);
+app.use("/uploads", uploadRoute);
+app.use("/search", middleware.requireLogin, searchRoute);
+app.use("/messages", middleware.requireLogin, messagesRoute);
+app.use("/notifications", middleware.requireLogin, notificationsRoute);
 
-//routes
-//app.use("/admin",loginRouter)
-app.use("/contactUs", contactRouter,(req,res,next)=>{console.log("Main route working"),next()})
-/*router.route("/contactUs").post(async(req,res)=>{
-try{
-const {name, email, phone, tour, message} = req.body
-
-const newContact = await contact.create(
-  {
-    fullname: name,
-    email: email,
-    phone: phone,
-    tour: tour,
-    message: message
-  }
-)
-
-console.log(`New contact saved successfully,\n${newContact}`)
-
-res.status(201).json({
-  message: `Contact saved successfully:`,
-  data: newContact})
-}catch(e){
-  console.error(`Failed to save contact \n ${e}`)
-  
-  res.status(500).json({ message: "Failed to save contact", error: e.message })
-}
-})*/
+//Use API Routes
+app.use("/api/posts", postsApiRoute);
+app.use("/api/users", usersApiRoute);
+app.use("/api/chats", chatsApiRoute);
+app.use("/api/messages", messagesApiRoute);
+app.use("/api/notifications", notificationsApiRoute);
 
 
-/*
- *splat matches any path without the root path. If you need to match the root 
- * path as well /, you can use /{*splat}, wrapping the wildcard in braces.
- * for more info, read expressjs docs 
- * */
-app.get('/{*splat}', (req, res) => {
-  //console.log("Catch-all route hit. Sending file:", path.join(frontendPath, "index.html"));
-  res.sendFile(path.join(frontendPath, "index.html"));
-}); 
+app.get("/", middleware.requireLogin, (req, res, next) => {
 
-const startServer = async () => {
-  try {
-    // waiting for the database to connect
-    await connectDB();
-    console.log("Database connected successfully!\nNow running operations...");
+    var payload = {
+        pageTitle: "Home",
+		userLoggedIn: req.session.user,
+		//userLoggedInJs: '{' + '"_id":' + JSON.stringify(req.session.user._id) + '}', //Modified for security purposes
+		userLoggedInJs: JSON.stringify(req.session.user),
+    }
 
-    // 2.  it's safe to run your function
-    //await createContact(); 
-    await createUser
-    
-    app.listen(3000, () => {
-      console.log('App listening on port 127.0.0.1:3000/');
+    res.status(200).render("home", payload);
+})
+
+io.on("connection", socket => {
+	
+    socket.on("setup", userData => {
+        socket.join(userData._id);
+        socket.emit("connected");
+    })
+
+	socket.on("join room", room => socket.join(room));
+	socket.on("typing", room => socket.in(room).emit("typing"));
+	socket.on("stop typing", room => socket.in(room).emit("stop typing"));
+	socket.on("notification received", room => socket.in(room).emit("notification received"));
+
+    socket.on("new message", newMessage => {
+        var chat = newMessage.chat;
+
+        if(!chat.users) return console.log("Chat.users not defined");
+
+        chat.users.forEach(user => {
+            
+            if(user._id == newMessage.sender._id) return;
+            socket.in(user._id).emit("message received", newMessage);
+        })
     });
-
-  } catch (error) {
-    console.error("Failed to start the application:", error);
-    process.exit(1); // Exit if we can't connect to the DB
-  }
-};
-
-//to run the server, type in command prompt npm run devStart
-//note that you must be in the same directory as the backend/server.js
-/*app.listen(port, () => {
-  console.log(`Example app listening on port 127.0.0.1:${port}/`)
-})*/
-startServer()
+	
+}) 
